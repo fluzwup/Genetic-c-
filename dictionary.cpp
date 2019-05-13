@@ -63,7 +63,7 @@ bool IsAWord(const char *word, int start, int end)
 
 	if(val == 0) return true;
 
-	if(start == end) return false;
+	if(start >= end) return false;
 
 	if(val < 0)
 		return IsAWord(word, start, index - 1);
@@ -74,7 +74,7 @@ bool IsAWord(const char *word, int start, int end)
 bool IsAWord(const char *word)
 {
 	static int wordcount = sizeof(dictionary) / sizeof(char *);
-	return IsAWord(word, 0, wordcount);
+	return IsAWord(word, 0, wordcount - 1);
 }
 
 /*

@@ -5,7 +5,9 @@
 #include <string>
 using namespace std;
 
-//#include "Genetic.h"
+#include "dictionary.h"
+
+#include "Genetic.h"
 
 // generate a random letter substitution code
 // the result will be a 26 string with one instance each of each capital letter
@@ -36,13 +38,63 @@ string GenerateCode()
 	return table;
 };
 
+string Encrypt(string &code, string &text)
+{
+	string output = text;
+
+	// create output by converting input characters into offsets into the code table
+	for(int i = 0; i < text.length(); ++i)
+	{
+		if(text[i] >= 'A' && text[i] <= 'Z')
+		{
+			int j = (int)text[i] - 'A';
+			output[i] = code[j];
+		}
+	}
+	return output;
+}
+
+int CountWords(string &text)
+{
+	int count = 0;
+	int start = 0;
+	int end = 0;
+
+	for(int i = 0; i < text.length(); ++i)
+	{
+		if(text[i] == ' ')
+		{
+			end = i;
+			if(end > start)
+			{
+				printf("Looking up %s\n", text.substr(start, end - start).c_str());
+				if(IsAWord(text.substr(start, end - start ).c_str()))
+				{
+					printf("Found\n");
+					 ++count;
+				}
+
+			}
+			start = end + 1;
+		}
+	}
+	return count;
+}
+
+// random quote from Snow Crash
+string text = "WE ARE ALL SUSCEPTIBLE TO THE PULL OF VIRAL IDEAS LIKE MASS HYSTERIA OR A TUNE THAT GETS INTO YOUR HEAD THAT YOU KEEP HUMMING ALL DAY UNTIL YOU SPREAD IT TO SOMEONE ELSE JOKES URBAN LEGENDS CRACKPOT RELIGIONS MARXISM NO MATTER HOW SMART WE GET THERE IS ALWAYS THIS DEEP IRRATIONAL PART THAT MAKES US POTENTIAL HOSTS FOR SELF REPLICATING INFORMATION";
 
 // encrypt a text with the code, and return it
 int main(int argc, char **argv)
 {
-	for(int i = 0; i < 100; ++i)
-	{
-		printf("%s\n", GenerateCode().c_str());
-	}
+	printf("Text:  %s\n", text.c_str());
+	printf("Recognized words: %i\n", CountWords(text));
+
+	string code = GenerateCode();
+	printf("Code:  %s\n", code.c_str());
+	string cipher = Encrypt(code, text);
+	printf("Cipher:  %s\n", cipher.c_str());
+	printf("Recognized words: %i\n", CountWords(cipher));
+	
 	return 0;
 }

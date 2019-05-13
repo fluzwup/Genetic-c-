@@ -4,108 +4,134 @@
 #include <cmath>
 using namespace std;
 
-/*
- * A species will be defined by a vector of genes; each gene will have
- * 	a static min and max set at creation 
- * 	a static attribute for coninuous vs discrete
- * 	a dynamic attribute for sensitivity
- * 	a constraint checker, to make sure that a new individual has a valid gene set
- * Each individual will have
- * 	a vector of gene values, one for each gene in the species
- * 	a fitness value, assigned by the survival function.  A zero indicates a 
- * 		"perfect" individual, larger values are worse.
- * 	a string for notes
- * New individuals may be created by
- * 	breeding 2 individuals
- * 		pick 2 parents from the livepool
- * 		continuous genes will pick a value between the parents'
- * 		discrete genes will pick one or the other parent's gene value
- * 	mutating an individual
- * 		pick an individual from the livepool
- * 		change one gene value a radom amount
- * 	creating an entirely new individual
- * There will be three populations
- * 	The testpool will be new individuals to be tested
- * 	The livepool will be the individuals with the top N fitness values, from whom 
- * 		new individuals are created
- * 	The deadpool will be the individuals with low fitness values, which testpool 
- * 		individuals are checked against	and duplicates killed off without 
- * 		having to run the survival test
- * There will be a survival test function, which accepts an individual, and calculates 
- * 	the fitness score
- * There will be an assessment function, which runs on the species every N generations
- * 	sets the sensitivity attribute for each gene, based on the range of values 
- * 		in the livepool
- * 	determines the genetic diversity in the livepool
- * 	if the only areas of high genetic diversity are in low sensitivity genes, then
- * 		returns a high confidence that a solution has been found
- * When finshed, report the value and sensitivity for each parameter in the gene for 
- * 	the top individual, plus the range of values in the live pool.
- */
+#include "Genetic.h"
 
-// this class contains information about a specific indivudual, such as the
-// value for each gene and the performance of the individual
-class Individual
+// make sure the species is viable by enforcing any intra-gene constraints
+virtual bool Species::ValidateIndividual(vector<double> values)
 {
-public:
-	// the gene values for this individual
-	vector<double> values;
-	string notes;
+	// by default, anything goes
+	return true;
+}
 
-	// the overall performance of this individual
-	double performance;
-};
-
-// this class contains the parameters for the genes in the population, such
-// as permissible ranges of each gene
-class Species
+// breed two individuals together to make a new individual
+virtual Individual Species::Breed(const Individual &one, const Individual &two)
 {
-public:
-	vector<double> mins;		// minimum value a gene can posess
-	vector<double> maxes;	// maximum value a gene can posess
-	vector<bool> discrete;
-	vector<double> sensitivity;
+	Individual child;
+	child.failure = 1000000000;
+
+	// continuous genes will be averaged together with random weight
+	// discrete genes will pick randomly between parent values
+	for(int i = 0; i < values.size(); ++i)
+	{
+		if(discrete[i])
+		{
+			if(1 == rand() % 2)
+				child.values[i] = one.values[i];
+			else
+				child.values[i] = two.values[i];
+		}
+		else
+		{
+			if(1 == rand() % 2)
+				child.values[i] = (2.0 * one.values[i] + two.values[i]) / 3.0;
+			else
+				child.values[i] = (2.0 * two.values[i] + one.values[i]) / 3.0;
+		}
+	}
 	
-	// add any constraints to genes here; return false if constraints are violated
-	virtual bool ValidateIndividual(vector<double> values);
+	// make sure new individual is not a clone of a parent; if so, mutate
+	bool clone = true;
+	for(int i = 0; i < values.size(); ++i)
+	{
+		if(child.values[i] != one.values[i])
+		{
+			clone = false;
+			break;
+		}
+		if(child.values[i] != two.values[i])
+		{
+			clone = false;
+			break;
+		}
+	}
+	if(clone)
+		return Mutate(child);
 
-	// breed two individuals together to make a new individual
-	virtual Individual Breed(const Individual &one, const Individual &two);
+	// make sure the individual is a valid member of the species, if not, create a new one
+	if(ValidateIndividual(child))
+		return child;
 
-	// mutate a random gene from a given individual to make a new individual
-	virtual Individual Mutate(const Individual &one);
+	return Randomize();
+}
 
-	// create an all-new individual with random genes
-	virtual Individual Randomize(void);
-};
-
-// this class owns the population, and handles the evolution
-class Population
+// mutate a random gene from a given individual to make a new individual
+virtual Individual Species::Mutate(const Individual &one)
 {
-public:
-	// these are the new individuals to be tested for fitness
-	vector<Individual> testpool;
-	// these are the fittest individuals from the past
-	vector<Individual> livepool;
-	// these are the unfit individuals
-	vector<Individual> deadpool;
+	int mutantGene = rand() % one.values.size();
 
-	Species species;
-	int generation;
+	if(discrete[mutantGene])
+	{
+		one.value[mutantGene] = rand() % (maxes[mutantGene] - mins[mutantGene]);
+		one.value[mutantGene] + mins[mutantGene];
+	}
+	else
+	{
+		// set to value [0 .. 1)
+		one.value[mutantGene] = (double)rand() / RAND_MAX;
+		// scale to range
+		one.value[mutantGene] = one.value[mutantGene] * (maxes[mutantGene] - mins[mutantGene]);
+		// shift up by minimum value
+		one.value[mutantGene] += mins[mutantGene];
+	}
 
-	int szLivepool;
-	int szTestpool;
+	// make sure result is a valid individual
+	if(ValidateIndividual(one))
+		return one;
 
-	// Generate a new population with random genetic values
-	void InitializePopulation(int members);
+	// if not, create a new individual with random genes
+	return Randomize();
+}
 
-	// For each generation:
+// create an all-new individual with random genes
+// if there are any gene constraints (such as mutally exclusive values) then this will need to enforce them
+virtual Individual Species::Randomize(void)
+{
+	Individual newbie;
 
-	// run simulations on all members
-	// sort individuals by performance
-	// preserve the genes of the top performer(s) for breeding
-	// To create next generation:
-	// create some all-new individuals
-	// mutate top performers of this generation
-	// mix genes of this generation's top perfomers with genes of overall top performers
-};
+	for(int i = 0; i < discrete.size(); ++i)
+	{
+		if(discrete[i])
+		{
+			newbie.value[i] = rand() % (maxes[i] - mins[i]);
+			newbie.value[i] + mins[i];
+		}
+		else
+		{
+			// set to value [0 .. 1)
+			newbie.value[i] = (double)rand() / RAND_MAX;
+			// scale to range
+			newbie.value[i] = newbie.value[i] * (maxes[mutantGene] - mins[i]);
+			// shift up by minimum value
+			newbie.value[i] += mins[i];
+		}
+	}
+
+	if(ValidateIndividual(newbie))
+		return newbie;
+
+	throw "Species::Randomize() failed to generate a compliant individual!";
+}
+
+// Generate a new population with random genetic values
+void Population::InitializePopulation(int members)
+{
+	testpool.resize(0);
+	livepool.resize(0);
+	deadpool.resize(0);
+
+	for(int i = 0; i < members; ++i)
+		testpool.push_back(species.Randomize());
+
+}
+
+
