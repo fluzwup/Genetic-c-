@@ -70,13 +70,13 @@ public:
 	virtual bool ValidateIndividual(vector<double> values);
 
 	// breed two individuals together to make a new individual
-	Individual Breed(const Individual &one, const Individual &two);
+	virtual Individual Breed(const Individual &one, const Individual &two);
 
 	// mutate a random gene from a given individual to make a new individual
-	Individual Mutate(const Individual &one);
+	virtual Individual Mutate(const Individual &one);
 
 	// create an all-new individual with random genes
-	Individual Randomize(void);
+	virtual Individual Randomize(void);
 };
 
 // this class owns the population, and handles the evolution
