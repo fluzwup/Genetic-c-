@@ -2,12 +2,14 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
+#include <string>
+#include <vector>
 using namespace std;
 
 #include "Genetic.h"
 
 // make sure the species is viable by enforcing any intra-gene constraints
-virtual bool Species::ValidateIndividual(vector<double> values)
+virtual bool Species::ValidateIndividual(Individual individual)
 {
 	// by default, anything goes
 	return true;
@@ -134,4 +136,11 @@ void Population::InitializePopulation(int members)
 
 }
 
+virtual void Population::RunIteration()
+{
+}
 
+virtual void Population::DiversifyPopulation()
+{
+	
+}

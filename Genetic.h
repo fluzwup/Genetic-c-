@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
+#include <string>
+#include <vector>
 using namespace std;
 
 /*
@@ -67,7 +69,7 @@ public:
 	vector<double> sensitivity;
 	
 	// add any constraints to genes here; return false if constraints are violated
-	virtual bool ValidateIndividual(vector<double> values);
+	virtual bool ValidateIndividual(Individual &individual);
 
 	// breed two individuals together to make a new individual
 	virtual Individual Breed(const Individual &one, const Individual &two);
@@ -108,4 +110,14 @@ public:
 	// create some all-new individuals
 	// mutate top performers of this generation
 	// mix genes of this generation's top perfomers with genes of overall top performers
+	
+	// sets fitness on individuals in the testpool
+	virtual void RunIteration();
+	// merges testpool into livepool, sorts by performance, moves high performing individuals 
+	//  into the livepool, poor performers into the deadpool
+	virtual void FilterPopulation();
+	// creates new testpool by breeding and mutating livepool individuals, adding a few new 
+	//  all-new individuals to keep the inbreeding down
+	virtual void DiversifyPopulation();
+
 };
