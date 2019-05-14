@@ -69,7 +69,7 @@ public:
 	vector<double> sensitivity;
 	
 	// add any constraints to genes here; return false if constraints are violated
-	virtual bool ValidateIndividual(Individual &individual);
+	virtual bool ValidateIndividual(const Individual &individual);
 
 	// breed two individuals together to make a new individual
 	virtual Individual Breed(const Individual &one, const Individual &two);
@@ -95,8 +95,7 @@ public:
 	Species species;
 	int generation;
 
-	int szLivepool;
-	int szTestpool;
+	int szLivepool = 10;
 
 	// Generate a new population with random genetic values
 	void InitializePopulation(int members);
@@ -111,8 +110,10 @@ public:
 	// mutate top performers of this generation
 	// mix genes of this generation's top perfomers with genes of overall top performers
 	
-	// sets fitness on individuals in the testpool
-	virtual void RunIteration();
+	// sets fitness on individuals in the testpool; this one must be filled in, there
+	//  is no generic behvior
+	virtual void RunIteration() = 0;
+
 	// merges testpool into livepool, sorts by performance, moves high performing individuals 
 	//  into the livepool, poor performers into the deadpool
 	virtual void FilterPopulation();
@@ -121,3 +122,4 @@ public:
 	virtual void DiversifyPopulation();
 
 };
+

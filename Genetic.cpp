@@ -4,26 +4,27 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 #include "Genetic.h"
 
 // make sure the species is viable by enforcing any intra-gene constraints
-virtual bool Species::ValidateIndividual(Individual individual)
+bool Species::ValidateIndividual(const Individual &individual)
 {
 	// by default, anything goes
 	return true;
 }
 
 // breed two individuals together to make a new individual
-virtual Individual Species::Breed(const Individual &one, const Individual &two)
+Individual Species::Breed(const Individual &one, const Individual &two)
 {
 	Individual child;
 	child.failure = 1000000000;
 
 	// continuous genes will be averaged together with random weight
 	// discrete genes will pick randomly between parent values
-	for(int i = 0; i < values.size(); ++i)
+	for(int i = 0; i < one.values.size(); ++i)
 	{
 		if(discrete[i])
 		{
@@ -43,7 +44,7 @@ virtual Individual Species::Breed(const Individual &one, const Individual &two)
 	
 	// make sure new individual is not a clone of a parent; if so, mutate
 	bool clone = true;
-	for(int i = 0; i < values.size(); ++i)
+	for(int i = 0; i < one.values.size(); ++i)
 	{
 		if(child.values[i] != one.values[i])
 		{
@@ -67,28 +68,29 @@ virtual Individual Species::Breed(const Individual &one, const Individual &two)
 }
 
 // mutate a random gene from a given individual to make a new individual
-virtual Individual Species::Mutate(const Individual &one)
+Individual Species::Mutate(const Individual &one)
 {
+	Individual two = one;
 	int mutantGene = rand() % one.values.size();
 
 	if(discrete[mutantGene])
 	{
-		one.value[mutantGene] = rand() % (maxes[mutantGene] - mins[mutantGene]);
-		one.value[mutantGene] + mins[mutantGene];
+		two.values[mutantGene] = rand() % int(maxes[mutantGene] - mins[mutantGene]);
+		two.values[mutantGene] + mins[mutantGene];
 	}
 	else
 	{
 		// set to value [0 .. 1)
-		one.value[mutantGene] = (double)rand() / RAND_MAX;
+		two.values[mutantGene] = (double)rand() / RAND_MAX;
 		// scale to range
-		one.value[mutantGene] = one.value[mutantGene] * (maxes[mutantGene] - mins[mutantGene]);
-		// shift up by minimum value
-		one.value[mutantGene] += mins[mutantGene];
+		two.values[mutantGene] = two.values[mutantGene] * (maxes[mutantGene] - mins[mutantGene]);
+		// shift up by minimum values
+		two.values[mutantGene] += mins[mutantGene];
 	}
 
 	// make sure result is a valid individual
-	if(ValidateIndividual(one))
-		return one;
+	if(ValidateIndividual(two))
+		return two;
 
 	// if not, create a new individual with random genes
 	return Randomize();
@@ -96,7 +98,7 @@ virtual Individual Species::Mutate(const Individual &one)
 
 // create an all-new individual with random genes
 // if there are any gene constraints (such as mutally exclusive values) then this will need to enforce them
-virtual Individual Species::Randomize(void)
+Individual Species::Randomize(void)
 {
 	Individual newbie;
 
@@ -104,17 +106,17 @@ virtual Individual Species::Randomize(void)
 	{
 		if(discrete[i])
 		{
-			newbie.value[i] = rand() % (maxes[i] - mins[i]);
-			newbie.value[i] + mins[i];
+			newbie.values[i] = rand() % int(maxes[i] - mins[i]);
+			newbie.values[i] + mins[i];
 		}
 		else
 		{
 			// set to value [0 .. 1)
-			newbie.value[i] = (double)rand() / RAND_MAX;
+			newbie.values[i] = (double)rand() / RAND_MAX;
 			// scale to range
-			newbie.value[i] = newbie.value[i] * (maxes[mutantGene] - mins[i]);
-			// shift up by minimum value
-			newbie.value[i] += mins[i];
+			newbie.values[i] = newbie.values[i] * (maxes[i] - mins[i]);
+			// shift up by minimum values
+			newbie.values[i] += mins[i];
 		}
 	}
 
@@ -136,11 +138,40 @@ void Population::InitializePopulation(int members)
 
 }
 
-virtual void Population::RunIteration()
+// for sorting Individuals from least to greates failure
+bool SortIndividuals(Individual &one, Individual &two)
 {
+	return one.failure < two.failure;
 }
 
-virtual void Population::DiversifyPopulation()
+void Population::FilterPopulation()
 {
-	
+	// add testpool to livepool
+	// sort by fitness
+	// keep top of livepool, move the rest to the deadpool
+	for(int i = 0; i < testpool.size(); ++i)
+		livepool.push_back(testpool[i]);
+
+	sort(livepool.begin(), livepool.end(), SortIndividuals);
+
+	for(int i = szLivepool; i < livepool.size(); ++i)
+		deadpool.push_back(livepool[i]);
+
+	livepool.resize(szLivepool);
+}
+
+void Population::DiversifyPopulation()
+{
+	// breed top of livepool with each of remainder of livepool
+	// mutate all of livepool
+	// add a new individual
+	testpool.resize(0);
+
+	for(int i = 1; i < livepool.size(); ++i)
+		testpool.push_back(species.Breed(livepool[0], livepool[i]));
+
+	for(int i = 0; i < livepool.size(); ++i)
+		testpool.push_back(species.Mutate(livepool[i]));
+
+	testpool.push_back(species.Randomize());
 }
