@@ -85,6 +85,9 @@ public:
 class Population
 {
 public:
+	// init population with a reference to the species, and the livepool size
+	Population(Species &s, int n = 10) : species(s), szLivepool(n) {};
+
 	// these are the new individuals to be tested for fitness
 	vector<Individual> testpool;
 	// these are the fittest individuals from the past
@@ -92,10 +95,10 @@ public:
 	// these are the unfit individuals
 	vector<Individual> deadpool;
 
-	Species species;
+	Species &species;
 	int generation;
 
-	int szLivepool = 10;
+	int szLivepool;
 
 	// Generate a new population with random genetic values
 	void InitializePopulation(int members);

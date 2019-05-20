@@ -54,6 +54,21 @@ string Encrypt(string &code, string &text)
 	return output;
 }
 
+string Decrypt(string &code, string &text)
+{
+	string output = text;
+
+	for(int i = 0; i < text.length(); ++i)
+	{
+		if(text[i] >= 'A' && text[i] <= 'Z')
+		{
+			int j = (int)text[i] - 'A';
+			output[i] = reverse operation here;
+		}
+	}
+	return output;
+}
+
 int CountWords(string &text)
 {
 	int count = 0;
@@ -84,6 +99,16 @@ int CountWords(string &text)
 // random quote from Snow Crash
 string text = "WE ARE ALL SUSCEPTIBLE TO THE PULL OF VIRAL IDEAS LIKE MASS HYSTERIA OR A TUNE THAT GETS INTO YOUR HEAD THAT YOU KEEP HUMMING ALL DAY UNTIL YOU SPREAD IT TO SOMEONE ELSE JOKES URBAN LEGENDS CRACKPOT RELIGIONS MARXISM NO MATTER HOW SMART WE GET THERE IS ALWAYS THIS DEEP IRRATIONAL PART THAT MAKES US POTENTIAL HOSTS FOR SELF REPLICATING INFORMATION";
 
+class SubCracker : public Population
+{
+	void RunIteration();
+};
+
+void SubCracker::RunIteration()
+{
+	// go through livepool and decrypt the string with each individual
+}
+
 int main(int argc, char **argv)
 {
 	printf("Text:  %s\n", text.c_str());
@@ -94,6 +119,8 @@ int main(int argc, char **argv)
 	string cipher = Encrypt(code, text);
 	printf("Cipher:  %s\n", cipher.c_str());
 	printf("Recognized words: %i\n", CountWords(cipher));
+	string clear = Encrypt(code, cipher);
+	printf("Clear text: %s\n", clear.c_str());
 	
 	return 0;
 }
